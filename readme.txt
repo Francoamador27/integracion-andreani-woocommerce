@@ -1,5 +1,4 @@
 ===  Grupo Logistico Andreani ===
-Contributors: Andreani,andreanigla, wanderlustcodes 
 Donate link: 
 Tags: woocommerce, shipping, rates, andreani, grupo logistico andreani, envio, envios, logistica, ultima milla, retiros, pickup, colecta, distribucion, supply chain, despacho, transporte, entrega, puntos HOP, entrega en sucursal, tarifas, precios, costos, cotizacion
 Requires at least: 5.0
