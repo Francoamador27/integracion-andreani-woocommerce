@@ -1,0 +1,137 @@
+Log entry at 2025-11-26 13:28:27
+{"descripcion":"VILLA ALLENDE (AV GOYCOCHEA)","codigo":"VLL","horarioDeAtencion":"De Lunes a Viernes de 08:00hs a 18:00hs;Su00e1bados de 08:00hs a 13:00hs;","numero":"222","idgla_integra":15351,"direccion":{"numero":"1535","codigoPostal":"5105","calle":"Av. Goycochea","localidad":"Villa Allende","provincia":"Cu00f3rdoba","region":"Centro","pais":"Argentina"},"id":30222,"canal":"DMS","telefonos":[""],"coordenadas":{"latitud":"-31.301891","longitud":"-64.2851"},"idgla_alertran":0,"datosAdicionales":{"tipo":"","conBuzonInteligente":false,"admiteEnvios":true,"entregaEnvios":true,"seHaceAtencionAlCliente":true}}
+Log entry at 2025-11-26 13:28:27
+Array
+(
+    [🧾 Orden] => 383667
+    [Sucursal seleccionada (raw)] => Array
+        (
+            [descripcion] => VILLA ALLENDE (AV GOYCOCHEA)
+            [codigo] => VLL
+            [horarioDeAtencion] => De Lunes a Viernes de 08:00hs a 18:00hs;Sábados de 08:00hs a 13:00hs;
+            [numero] => 222
+            [idgla_integra] => 15351
+            [direccion] => Array
+                (
+                    [numero] => 1535
+                    [codigoPostal] => 5105
+                    [calle] => Av. Goycochea
+                    [localidad] => Villa Allende
+                    [provincia] => Córdoba
+                    [region] => Centro
+                    [pais] => Argentina
+                )
+
+            [id] => 30222
+            [canal] => DMS
+            [telefonos] => Array
+                (
+                    [0] => 
+                )
+
+            [coordenadas] => Array
+                (
+                    [latitud] => -31.301891
+                    [longitud] => -64.2851
+                )
+
+            [idgla_alertran] => 0
+            [datosAdicionales] => Array
+                (
+                    [tipo] => 
+                    [conBuzonInteligente] => 
+                    [admiteEnvios] => 1
+                    [entregaEnvios] => 1
+                    [seHaceAtencionAlCliente] => 1
+                )
+
+        )
+
+    [Sucursal ID] => 30222
+)
+
+Log entry at 2025-11-26 13:28:27
+📤 Payload a Andreani (FINAL):
+{
+    "contrato": "400009129",
+    "idPedido": "383667",
+    "tipoServicio": "Sucursal",
+    "origen": {
+        "postal": {
+            "codigoPostal": "5000",
+            "calle": "Rosario de Santa Fe",
+            "numero": "15",
+            "localidad": "Cordoba",
+            "region": "AR-X",
+            "pais": "AR",
+            "componentesDeDireccion": [
+                {
+                    "meta": "entreCalle",
+                    "contenido": ""
+                }
+            ]
+        }
+    },
+    "destino": {
+        "sucursal": {
+            "id": "30222"
+        }
+    },
+    "remitente": {
+        "nombreCompleto": "Club Atletico Talleres",
+        "email": "tiendaonline@clubtalleres.com.ar",
+        "documentoTipo": "DNI",
+        "documentoNumero": "",
+        "telefonos": [
+            {
+                "tipo": 1,
+                "numero": "3511234567"
+            }
+        ]
+    },
+    "destinatario": [
+        {
+            "nombreCompleto": "Valentina del Río",
+            "email": "valentinadelriosan@gmail.com",
+            "documentoTipo": "DNI",
+            "documentoNumero": "35525388",
+            "telefonos": [
+                {
+                    "tipo": 2,
+                    "numero": "3512372516"
+                }
+            ]
+        }
+    ],
+    "remito": {
+        "numeroRemito": "wc_order_383667"
+    },
+    "bultos": [
+        {
+            "anchoCm": 10,
+            "altoCm": 5,
+            "largoCm": 10,
+            "kilos": 0.2,
+            "volumenCm": 500,
+            "valorDeclaradoSinImpuestos": 20000,
+            "valorDeclaradoConImpuestos": 24200,
+            "referencias": [
+                {
+                    "meta": "producto"
+                },
+                {
+                    "meta": "idCliente",
+                    "contenido": "41"
+                },
+                {
+                    "meta": "observaciones",
+                    "contenido": ""
+                }
+            ]
+        }
+    ]
+}
+Log entry at 2025-11-26 13:28:28
+📦 Cuerpo de la respuesta de Andreani:
+Log entry at 2025-11-26 13:28:28
+{"type":"about:blank","title":"Recurso no encontrado","detail":"No se encontro la sucursal","status":400,"errors":null}

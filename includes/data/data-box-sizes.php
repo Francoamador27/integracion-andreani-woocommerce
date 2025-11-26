@@ -2,7 +2,6 @@
 /**
  * Box Sizes for fedex in array format
  */
-if ( ! defined( 'ABSPATH' ) ) exit; // Exit if accessed directly 
 
 return array(
 	array(
