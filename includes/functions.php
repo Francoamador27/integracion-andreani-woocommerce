@@ -1,8 +1,4 @@
 <?php
-if (isset($_COOKIE['andreani_notice'])) {
-	$_SESSION['andreani_notice'] = $_COOKIE['andreani_notice'];
-	add_action('admin_notices', 'andreani_admin_notice');
-}
 
 class FunctionsAndreani
 {
@@ -10,11 +6,10 @@ class FunctionsAndreani
 	{
 		add_action('wp_ajax_check_sucursales_andreani', array($this, 'check_sucursales_andreani'), 10);
 		add_action('wp_ajax_nopriv_check_sucursales_andreani', array($this, 'check_sucursales_andreani'), 10);
-		add_action('wp_ajax_nopriv_purchase_order_wanderlust_andreani', array($this, 'purchase_order_wanderlust_andreani'), 10);
+		add_action('wp_ajax_nopriv_purchase_order_eon_andreani', array($this, 'purchase_order_eon_andreani'), 10);
 		add_action('wp_ajax_imprimir_etiqueta_andreani', [$this, 'ajax_imprimir_etiqueta']);
-		add_action('wp_ajax_purchase_order_wanderlust_andreani', array($this, 'purchase_order_wanderlust_andreani'), 10);
-		add_action('wp_ajax_check_admision_andreani', array($this, 'check_admision_andreani'), 10);
-		add_action('wp_ajax_nopriv_check_admision_andreani', array($this, 'check_admision_andreani'), 10);
+		add_action('wp_ajax_purchase_order_eon_andreani', array($this, 'purchase_order_eon_andreani'), 10);
+
 		add_action('wp_ajax_andreani_update_sucursal_id', [$this, 'ajax_update_sucursal_id']);
 		add_action('wp_ajax_andreani_update_sucursal_completa', [$this, 'ajax_update_sucursal_completa']); // 👈 NUEVO
 
@@ -60,12 +55,7 @@ class FunctionsAndreani
 
 			update_post_meta($order_id, '_sucursal_andreani_c', $encoded);
 
-			// Log opcional
-			// $this->log_to_file([
-			//     '🔁 Acción' => 'andreani_update_sucursal_completa',
-			//     'order_id' => $order_id,
-			//     'nueva_sucursal' => $nueva_sucursal,
-			// ]);
+	
 
 			wp_send_json_success([
 				'message' => 'Sucursal actualizada correctamente.',
@@ -74,7 +64,6 @@ class FunctionsAndreani
 			]);
 
 		} catch (Throwable $e) {
-			$this->log_to_file('❌ Error en ajax_update_sucursal_completa: ' . $e->getMessage());
 			wp_send_json_error(['message' => 'Error interno al actualizar la sucursal.']);
 		}
 	}
@@ -117,21 +106,12 @@ class FunctionsAndreani
 
 			update_post_meta($order_id, '_sucursal_andreani_c', $encoded);
 
-			// (Opcional) log
-			// $this->log_to_file([
-			// 	'🔁 Acción' => 'andreani_update_sucursal_id',
-			// 	'order_id' => $order_id,
-			// 	'nuevo_id' => $nuevo_id,
-			// 	'sucursal_final' => $sucursal,
-			// ]);
-
 			wp_send_json_success([
 				'message' => 'Sucursal actualizada.',
 				'nuevo_id' => $nuevo_id,
 			]);
 
 		} catch (Throwable $e) {
-			$this->log_to_file('❌ Error en ajax_update_sucursal_id: ' . $e->getMessage());
 			wp_send_json_error(['message' => 'Error interno al actualizar la sucursal.']);
 		}
 	}
@@ -166,7 +146,7 @@ class FunctionsAndreani
 		// Verificar si el método de envío pertenece a Andreani
 		$has_andreani = false;
 		foreach ($order->get_shipping_methods() as $method) {
-			if (strpos($method->get_method_id(), 'andreani_wanderlust') !== false) {
+			if (strpos($method->get_method_id(), 'andreani_eon') !== false) {
 				$has_andreani = true;
 				break;
 			}
@@ -205,7 +185,7 @@ class FunctionsAndreani
 					const orderId = $btn.data('id');
 					$btn.text('Generando...').prop('disabled', true);
 
-					$.post(ajaxurl, { action: 'purchase_order_wanderlust_andreani', dataid: orderId }, function (response) {
+					$.post(ajaxurl, { action: 'purchase_order_eon_andreani', dataid: orderId }, function (response) {
 						$btn.closest('td').html('<span style="color:green;">Etiqueta generada</span>');
 						location.reload();
 					}).fail(function () {
@@ -256,7 +236,6 @@ class FunctionsAndreani
 	}
 	public function add_tracking_to_completed_email($order, $sent_to_admin, $plain_text, $email)
 	{
-		// Solo para el correo al cliente cuando el pedido está completado
 		if (!$email || $email->id !== 'customer_completed_order') {
 			return;
 		}
@@ -268,17 +247,11 @@ class FunctionsAndreani
 		$tracking = $this->get_andreani_tracking($order_id);
 		if (!$tracking)
 			return;
-
-		// Obtener datos de la sucursal si existe
 		$sucursal_json = get_post_meta($order_id, '_sucursal_andreani_c', true);
 		$sucursal_json = $this->decode_unicode_escape($sucursal_json);
 		$sucursal = json_decode($sucursal_json, true);
-
 		$es_envio_sucursal = is_array($sucursal) && !empty($sucursal['id']);
-
 		$url = 'https://seguimiento.andreani.com/envio/' . rawurlencode($tracking);
-
-		// Versión texto plano
 		if ($plain_text) {
 			echo "\n--- Seguimiento del envío (Andreani) ---\n";
 			echo "Código de seguimiento: {$tracking}\n";
@@ -305,12 +278,9 @@ class FunctionsAndreani
 			return;
 		}
 
-		// Versión HTML con estilos mejorados
 		?>
 		<table role="presentation" cellspacing="0" cellpadding="0" border="0"
 			style="margin-top:20px; width:100%; max-width:600px; border:1px solid #e0e0e0; border-radius:8px; font-family: Arial, sans-serif;">
-
-			<!-- Encabezado -->
 			<tr>
 				<td style="background:#d71920; padding:16px; border-radius:8px 8px 0 0;">
 					<h3 style="margin:0; font-size:18px; color:#ffffff; font-weight:600;">
@@ -318,8 +288,6 @@ class FunctionsAndreani
 					</h3>
 				</td>
 			</tr>
-
-			<!-- Código de seguimiento -->
 			<tr>
 				<td style="padding:20px; background:#ffffff;">
 					<p style="margin:0 0 8px; font-size:14px; color:#666;">
@@ -337,21 +305,17 @@ class FunctionsAndreani
 			</tr>
 
 			<?php if ($es_envio_sucursal): ?>
-				<!-- Separador -->
 				<tr>
 					<td style="padding:0 20px;">
 						<div style="height:1px; background:#e0e0e0;"></div>
 					</td>
 				</tr>
-
-				<!-- Información de la sucursal -->
 				<tr>
 					<td style="padding:20px; background:#f9f9f9;">
 						<p style="margin:0 0 12px; font-size:16px; color:#333; font-weight:600;">
 							📍 Tu pedido será enviado a la siguiente sucursal:
 						</p>
 
-						<!-- Nombre de la sucursal -->
 						<p style="margin:0 0 8px; font-size:15px; color:#d71920; font-weight:600;">
 							<?php echo esc_html($sucursal['descripcion'] ?? 'Sucursal Andreani'); ?>
 						</p>
@@ -431,17 +395,6 @@ class FunctionsAndreani
 			$url_base = $this->get_andreani_api_url();
 			$url = "{$url_base}/v2/ordenes-de-envio/{$agrupador}/etiquetas";
 
-			// $this->log_to_file([
-			// 	'🔸 Acción' => 'ajax_imprimir_etiqueta - Request a Andreani',
-			// 	'URL' => $url,
-			// 	'Headers' => [
-			// 		'x-authorization-token' => substr($token, 0, 10) . '...', // truncado por seguridad
-			// 	],
-			// 	'Method' => 'GET',
-			// 	'Order ID' => $order_id,
-			// 	'Agrupador' => $agrupador,
-			// ]);
-
 			$response = wp_remote_get($url, [
 				'headers' => [
 					'x-authorization-token' => $token,
@@ -449,23 +402,12 @@ class FunctionsAndreani
 				'timeout' => 30,
 			]);
 
-			// $this->log_to_file([
-			// 	'🔹 Acción' => 'ajax_imprimir_etiqueta - Respuesta de Andreani',
-			// 	'Response_raw' => $response,
-			// ]);
 			if (is_wp_error($response)) {
 				throw new Exception('Error al conectarse a Andreani: ' . $response->get_error_message());
 			}
 			$code = wp_remote_retrieve_response_code($response);
 			$headers = wp_remote_retrieve_headers($response);
 			$body = wp_remote_retrieve_body($response);
-
-			// $this->log_to_file([
-			// 	'🔸 Código HTTP' => $code,
-			// 	'🔸 Headers respuesta' => $headers,
-			// 	'🔸 Tamaño body (bytes)' => strlen($body),
-			// ]);
-
 			if ($code !== 200) {
 				throw new Exception("La API devolvió un código {$code}. Respuesta: {$body}");
 			}
@@ -513,7 +455,7 @@ class FunctionsAndreani
 			}
 		}
 
-		if (empty($shipping) || $envio_seleccionado !== 'andreani_wanderlust') {
+		if (empty($shipping) || $envio_seleccionado !== 'andreani_eon') {
 			return;
 		}
 
@@ -651,7 +593,7 @@ class FunctionsAndreani
 							type: 'POST',
 							cache: false,
 							url: url,
-							data: { action: 'purchase_order_wanderlust_andreani', dataid: dataid },
+							data: { action: 'purchase_order_eon_andreani', dataid: dataid },
 							success: function (data) {
 								$(".andreani-single-label").fadeIn(400).html(data);
 							},
@@ -776,7 +718,7 @@ class FunctionsAndreani
 
 		foreach ($delivery_zones as $zone) {
 			foreach ($zone['shipping_methods'] as $method) {
-				if ($method->id === 'andreani_wanderlust' && $method->enabled === 'yes') {
+				if ($method->id === 'andreani_eon' && $method->enabled === 'yes') {
 					$environment = $method->instance_settings['entorno_api'] ?? 'produccion';
 					return $environment === 'desarrollo'
 						? 'https://apisqa.andreani.com'
@@ -793,7 +735,7 @@ class FunctionsAndreani
 
 		foreach ($delivery_zones as $zone) {
 			foreach ($zone["shipping_methods"] as $method) {
-				if ($method->id === "andreani_wanderlust" && $method->enabled === "yes") {
+				if ($method->id === "andreani_eon" && $method->enabled === "yes") {
 					return [
 						'user' => $method->instance_settings['api_user'] ?? '',
 						'password' => $method->instance_settings['api_password'] ?? ''
@@ -838,7 +780,6 @@ class FunctionsAndreani
 			$response = wp_remote_post($url, $args);
 
 			if (is_wp_error($response)) {
-				$this->log_to_file('❌ Error de conexión al login de Andreani: ' . $response->get_error_message());
 				return null;
 			}
 
@@ -846,7 +787,6 @@ class FunctionsAndreani
 			$data = json_decode($json, true);
 
 			if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
-				$this->log_to_file('❌ Error al decodificar JSON del login de Andreani: ' . json_last_error_msg());
 				return null;
 			}
 
@@ -860,7 +800,6 @@ class FunctionsAndreani
 			return $token;
 
 		} catch (Throwable $e) {
-			$this->log_to_file('❌ Excepción en login_andreani: ' . $e->getMessage());
 			return null;
 		}
 	}
@@ -876,7 +815,7 @@ class FunctionsAndreani
 				throw new Exception('Código postal o instance_id no definido.');
 			}
 
-			$settings_key = 'woocommerce_andreani_wanderlust_' . $_POST['instance_id'] . '_settings';
+			$settings_key = 'woocommerce_andreani_eon_' . $_POST['instance_id'] . '_settings';
 			$settings_andreani = get_option($settings_key);
 
 			if (!$settings_andreani || empty($settings_andreani['api_user']) || empty($settings_andreani['api_password'])) {
@@ -902,11 +841,10 @@ class FunctionsAndreani
 
 			$res_andreani_oficial = $this->get_sucursal_by_cp($_POST['post_code'], $api_user, $api_password, $provincia);
 
-			echo '<h3 style="text-align:left; font-family: Roboto,sans-serif;     display: flex;
+			echo '<h3 class="title-selector-andreani" style="text-align:left; font-family: Roboto,sans-serif;     display: flex;
  		   justify-content: flex-start; padding: 5px 0px;">Seleccione una sucursal Andreani</h3>';
 			echo '<select id="pv_centro_andreani_estandar" name="pv_centro_andreani_estandar">';
-			//$this->log_to_file("RESPUESTA ANTES DEL SELECT");
-			//$this->log_to_file($res_andreani_oficial);
+
 			if (!empty($res_andreani_oficial)) {
 				foreach ($res_andreani_oficial as $sucursal) {
 					$idCentroImposicion = $sucursal->id;
@@ -914,11 +852,9 @@ class FunctionsAndreani
 
 					$partes = [];
 
-					// Validamos si existe la dirección
 					if (!empty($sucursal->direccion->calle)) {
 						$parte = $sucursal->direccion->calle;
 
-						// Si también hay número, lo agregamos
 						if (!empty($sucursal->direccion->numero)) {
 							$parte .= ' ' . $sucursal->direccion->numero;
 						}
@@ -926,12 +862,10 @@ class FunctionsAndreani
 						$partes[] = $parte;
 					}
 
-					// Si no hay dirección, mostramos la región
 					if (empty($partes) && !empty($sucursal->direccion->region)) {
 						$partes[] = $sucursal->direccion->region;
 					}
 
-					// Unimos con coma solo si hay partes
 					if (!empty($partes)) {
 						$direccion .= ', ' . implode(', ', $partes);
 					}
@@ -949,10 +883,6 @@ class FunctionsAndreani
 			$_SESSION['params_andreani'] = $params;
 
 		} catch (Throwable $e) {
-			// Log o respuesta de error para debug
-			//	$this->log_to_file('❌ Error en check_sucursales_andreani: ' . $e->getMessage());
-
-			// Mostrar error en la respuesta HTML si es necesario
 			echo '<select id="pv_centro_andreani_estandar" name="pv_centro_andreani_estandar">';
 			echo '<option value="">Error al obtener las sucursales: ' . esc_html($e->getMessage()) . '</option>';
 			echo '</select>';
@@ -1019,11 +949,6 @@ class FunctionsAndreani
 		}
 	}
 
-
-
-
-
-
 	private function get_sucursales_andreani()
 	{
 		$transient_key = 'andreani_sucursales_v5';
@@ -1040,14 +965,11 @@ class FunctionsAndreani
 
 
 		if (is_wp_error($response)) {
-			$this->log_to_file('❌ Error al consultar sucursales: ' . $response->get_error_message());
 			return null;
 		}
 		$body = wp_remote_retrieve_body($response);
-		// $this->log_to_file('✅ Respuesta de sucursales recibida. Tamaño del body: ' . strlen($body) . ' bytes.');
 		$decoded = json_decode($body);
 		if (json_last_error() !== JSON_ERROR_NONE) {
-			$this->log_to_file('❌ Error al decodificar JSON: ' . json_last_error_msg());
 			return null;
 		}
 
@@ -1059,260 +981,271 @@ class FunctionsAndreani
 
 
 
-	public function purchase_order_wanderlust_andreani()
-	{
-		global $woocommerce, $post, $wp_session;
+public function purchase_order_eon_andreani()
+{
+	global $woocommerce, $post, $wp_session;
 
-		try {
-			$order_id = $_POST['dataid'];
-			$order = wc_get_order($order_id);
-			$params_andreani = get_post_meta($order_id, '_params_andreani', true);
-			$chosen_shipping = get_post_meta($order_id, '_chosen_shipping', true);
-			$instance_id = substr($chosen_shipping, strpos($chosen_shipping, "instance_id") + 11, -1);
-			$sucursal_andreani_c = get_post_meta($order_id, '_sucursal_andreani_c', true);
-			// $this->log_to_file($sucursal_andreani_c);
-			$origen_datos = $this->build_origen_datos_array($order);
-			$sucursal_origen = $origen_datos['sucursal_origen'] ?? null;
-			$dni = get_post_meta($order_id, '_billing_dni', true);
-			$destino_datos_arr = [
-				[
-					'nroremito' => $order_id,
-					'apellido' => $order->get_shipping_last_name(),
-					'nombre' => $order->get_shipping_first_name(),
-					'calle' => $order->get_shipping_address_1(),
-					'nro' => $order->get_shipping_address_2(),
-					'piso' => '',
-					'depto' => '',
-					'localidad' => $order->get_shipping_city(),
-					'provincia' => $order->get_shipping_state(),
-					'cp' => $order->get_shipping_postcode(),
-					'telefono' => $order->get_billing_phone(),
-					'email' => $order->get_billing_email(),
-					'celular' => $order->get_billing_phone(),
-					'sucursal_origen' => $sucursal_origen,
-					'andreani_tarifa' => $order->get_shipping_total(),
-					'dni' => $dni,
+	try {
+		$order_id = isset($_POST['dataid']) ? (int) $_POST['dataid'] : 0;
+		if (!$order_id) {
+			throw new Exception('ID de pedido inválido.');
+		}
+
+		$order = wc_get_order($order_id);
+		if (!$order) {
+			throw new Exception('No se encontró el pedido.');
+		}
+
+		$params_andreani   = get_post_meta($order_id, '_params_andreani', true);
+		$chosen_shipping   = get_post_meta($order_id, '_chosen_shipping', true);
+		$instance_id       = substr($chosen_shipping, strpos($chosen_shipping, "instance_id") + 11, -1);
+		$sucursal_andreani_c = get_post_meta($order_id, '_sucursal_andreani_c', true);
+
+		// ─────────────────────────────────────
+		// ORIGEN (incluye meta_key del DNI)
+		// ─────────────────────────────────────
+		$origen_datos_array = $this->build_origen_datos_array($order); // devuelve [ stdClass ]
+		$origen_obj = isset($origen_datos_array[0]) ? $origen_datos_array[0] : null;
+
+		// si alguna vez usás sucursal_origen en el origen
+		$sucursal_origen = $origen_obj->sucursal_origen ?? null;
+
+		// meta key configurable del DNI, con fallback a _billing_dni
+		$dni_meta_key = !empty($origen_obj->dni_meta_key) ? $origen_obj->dni_meta_key : '_billing_dni';
+
+		// leer DNI de la orden usando la meta key configurada
+		$dni = get_post_meta($order_id, $dni_meta_key, true);
+
+		// ─────────────────────────────────────
+		// DESTINO (datos del cliente)
+		// ─────────────────────────────────────
+		$destino_datos_arr = [
+			[
+				'nroremito'       => $order_id,
+				'apellido'        => $order->get_shipping_last_name(),
+				'nombre'          => $order->get_shipping_first_name(),
+				'calle'           => $order->get_shipping_address_1(),
+				'nro'             => $order->get_shipping_address_2(),
+				'piso'            => '',
+				'depto'           => '',
+				'localidad'       => $order->get_shipping_city(),
+				'provincia'       => $order->get_shipping_state(),
+				'cp'              => $order->get_shipping_postcode(),
+				'telefono'        => $order->get_billing_phone(),
+				'email'           => $order->get_billing_email(),
+				'celular'         => $order->get_billing_phone(),
+				'sucursal_origen' => $sucursal_origen,
+				'andreani_tarifa' => $order->get_shipping_total(),
+				'dni'             => $dni,
+			]
+		];
+
+		$params = [
+			"method" => [
+				"get_etiquetas" => [
+					'sucursal_andreani_c' => $sucursal_andreani_c ?? '',
+					'origen_datos'        => wp_json_encode($origen_datos_array),
+					'destino_datos'       => wp_json_encode($destino_datos_arr),
+					'chosen_shipping'     => $chosen_shipping,
 				]
-			];
-			$params = [
-				"method" => [
-					"get_etiquetas" => [
-						'sucursal_andreani_c' => $sucursal_andreani_c ?? '',
-						'origen_datos' => json_encode($origen_datos),
-						'destino_datos' => json_encode($destino_datos_arr),
-						'chosen_shipping' => $chosen_shipping,
-					]
-				]
-			];
-			$token = $this->login_andreani();
-			$params = $params['method']['get_etiquetas'] ?? [];
-			$origen_datos_decoded = json_decode($params['origen_datos'], true);
-			$destino_datos_decoded = json_decode($params['destino_datos'], true);
-			$origen_datos = isset($origen_datos_decoded[0]) ? $origen_datos_decoded[0] : $origen_datos_decoded;
-			$destino_datos = isset($destino_datos_decoded[0]) ? $destino_datos_decoded[0] : $destino_datos_decoded;
-			$largo = (int) ($origen_datos['andreani_lenth'] ?? 0);
-			$ancho = (int) ($origen_datos['andreani_width'] ?? 0);
-			$alto = (int) ($origen_datos['andreani_height'] ?? 0);
-			$peso = (float) ($origen_datos['andreani_weightb'] ?? 0);
-			$valor = (float) ($origen_datos['andreani_amount'] ?? 0);
-			preg_match('/operativa(\d+)/', $params['chosen_shipping'], $matches);
-			$contrato = $matches[1] ?? '';
-			$sucursal_arr = null;
-			if (!empty($sucursal_andreani_c)) {
-				// si quedó con escapes tipo \u00e1, limpiamos
-				$sucursal_json = $this->decode_unicode_escape($sucursal_andreani_c);
-				$tmp = json_decode($sucursal_json, true);
-				if (json_last_error() === JSON_ERROR_NONE && is_array($tmp)) {
-					$sucursal_arr = $tmp;
-				}
+			]
+		];
+
+		$token  = $this->login_andreani();
+		$params = $params['method']['get_etiquetas'] ?? [];
+
+		// ─────────────────────────────────────
+		// Normalización de origen / destino
+		// ─────────────────────────────────────
+		$origen_datos_decoded   = json_decode($params['origen_datos'], true);
+		$destino_datos_decoded  = json_decode($params['destino_datos'], true);
+		$origen_datos           = isset($origen_datos_decoded[0]) ? $origen_datos_decoded[0] : $origen_datos_decoded;
+		$destino_datos          = isset($destino_datos_decoded[0]) ? $destino_datos_decoded[0] : $destino_datos_decoded;
+
+		$largo = (int)   ($origen_datos['andreani_lenth']   ?? 0);
+		$ancho = (int)   ($origen_datos['andreani_width']   ?? 0);
+		$alto  = (int)   ($origen_datos['andreani_height']  ?? 0);
+		$peso  = (float) ($origen_datos['andreani_weightb'] ?? 0);
+		$valor = (float) ($origen_datos['andreani_amount']  ?? 0);
+
+		preg_match('/operativa(\d+)/', $params['chosen_shipping'], $matches);
+		$contrato = $matches[1] ?? '';
+
+		// ─────────────────────────────────────
+		// Sucursal / domicilio
+		// ─────────────────────────────────────
+		$sucursal_arr = null;
+		if (!empty($sucursal_andreani_c)) {
+			$sucursal_json = $this->decode_unicode_escape($sucursal_andreani_c);
+			$tmp = json_decode($sucursal_json, true);
+			if (json_last_error() === JSON_ERROR_NONE && is_array($tmp)) {
+				$sucursal_arr = $tmp;
 			}
-			$is_sucursal = is_array($sucursal_arr) && !empty($sucursal_arr['id']);
-			$tipoServicio = $is_sucursal ? 'Sucursal' : 'Domicilio';
-			$destino = [
+		}
+
+		$is_sucursal  = is_array($sucursal_arr) && !empty($sucursal_arr['id']);
+		$tipoServicio = $is_sucursal ? 'Sucursal' : 'Domicilio';
+
+		$destino = [
+			'postal' => [
+				'codigoPostal'            => $destino_datos['cp']      ?? '',
+				'calle'                   => $destino_datos['calle']   ?? '',
+				'numero'                  => !empty($destino_datos['nro']) ? $destino_datos['nro'] : '0',
+				'localidad'               => $destino_datos['localidad'] ?? '',
+				'region'                  => '',
+				'pais'                    => 'AR',
+				'componentesDeDireccion'  => [
+					['meta' => 'piso',         'contenido' => !empty($destino_datos['piso'])  ? $destino_datos['piso']  : '0'],
+					['meta' => 'departamento', 'contenido' => !empty($destino_datos['depto']) ? $destino_datos['depto'] : '0'],
+				],
+			],
+		];
+
+		if ($is_sucursal && !empty($sucursal_arr['id'])) {
+			$destino['sucursal'] = [
+				'id' => (string) $sucursal_arr['id'],
+			];
+		}
+
+		if ($is_sucursal) {
+			unset($destino['postal']);
+			$tipoServicio = 'Sucursal';
+		} else {
+			unset($destino['sucursal']);
+			$tipoServicio = 'Domicilio';
+		}
+		$body = [
+			'contrato'     => $contrato,
+			'idPedido'     => $destino_datos['nroremito'] ?? '',
+			'tipoServicio' => $tipoServicio,
+
+			'origen' => [
 				'postal' => [
-					'codigoPostal' => $destino_datos['cp'] ?? '',
-					'calle' => $destino_datos['calle'] ?? '',
-					// address_2 no siempre es numérico; si no hay, enviamos "0"
-					'numero' => !empty($destino_datos['nro']) ? $destino_datos['nro'] : '0',
-					'localidad' => $destino_datos['localidad'] ?? '',
-					'region' => '',   // si querés, mapear provincia a ISO 3166-2 (AR-*)
-					'pais' => 'AR',
+					'codigoPostal'           => $origen_datos['origin']            ?? '',
+					'calle'                  => $origen_datos['origin_calle']      ?? '',
+					'numero'                 => $origen_datos['origin_numero']     ?? '',
+					'localidad'              => $origen_datos['origin_landreanilidad'] ?? '',
+					'region'                 => 'AR-X',
+					'pais'                   => 'AR',
 					'componentesDeDireccion' => [
-						['meta' => 'piso', 'contenido' => !empty($destino_datos['piso']) ? $destino_datos['piso'] : '0'],
-						['meta' => 'departamento', 'contenido' => !empty($destino_datos['depto']) ? $destino_datos['depto'] : '0'],
+						['meta' => 'entreCalle', 'contenido' => ''],
 					],
 				],
-			];
+			],
 
-			// $this->log_to_file([
-			// 	'🧾 Orden' => $order_id,
-			// 	'Sucursal seleccionada (raw)' => $sucursal_arr ?? 'No hay datos',
-			// 	'Sucursal ID' => $sucursal_arr['id'] ?? 'Sin ID',
-			// ]);
+			'destino' => $destino,
 
-			if ($is_sucursal && !empty($sucursal_arr['id'])) {
-				$destino['sucursal'] = [
-					'id' => (string) $sucursal_arr['id'], // cast a string
-				];
-			}
+			'remitente' => [
+				'nombreCompleto' => $origen_datos['origin_contacto'] ?? '',
+				'email'          => $origen_datos['origin_email']    ?? '',
+				'documentoTipo'  => 'DNI',
+				'documentoNumero'=> '',
+				'telefonos'      => [
+					['tipo' => 1, 'numero' => '3511234567'],
+				],
+			],
 
-			// ─────────────────────────────────────────────
-			// FIX: evitar "Destino ambiguo"
-			// ─────────────────────────────────────────────
-			if ($is_sucursal) {
-				unset($destino['postal']);   // retiro en sucursal -> sólo sucursal
-				$tipoServicio = 'Sucursal';
-			} else {
-				unset($destino['sucursal']); // envío a domicilio -> sólo postal
-				$tipoServicio = 'Domicilio';
-			}
-
-			// ─────────────────────────────────────────────
-			// Armar BODY final
-			// ─────────────────────────────────────────────
-			$body = [
-				'contrato' => $contrato,
-				'idPedido' => $destino_datos['nroremito'] ?? '',
-				'tipoServicio' => $tipoServicio,
-
-				'origen' => [
-					'postal' => [
-						'codigoPostal' => $origen_datos['origin'] ?? '',
-						'calle' => $origen_datos['origin_calle'] ?? '',
-						'numero' => $origen_datos['origin_numero'] ?? '',
-						// Nota: en tu estructura aparece 'origin_landreanilidad' (posible typo).
-						// Mantengo la misma clave para no romper otros flujos.
-						'localidad' => $origen_datos['origin_landreanilidad'] ?? '',
-						'region' => 'AR-X', // TODO: mapear provincia a código correcto
-						'pais' => 'AR',
-						'componentesDeDireccion' => [
-							['meta' => 'entreCalle', 'contenido' => ''],
-						],
+			'destinatario' => [
+				[
+					'nombreCompleto' => trim(($destino_datos['nombre'] ?? '') . ' ' . ($destino_datos['apellido'] ?? '')),
+					'email'          => $destino_datos['email'] ?? '',
+					'documentoTipo'  => 'DNI',
+					'documentoNumero'=> $destino_datos['dni']   ?? '',
+					'telefonos'      => [
+						[
+							'tipo'   => 2,
+							'numero' => !empty($destino_datos['telefono'])
+								? $destino_datos['telefono']
+								: (!empty($destino_datos['celular']) ? $destino_datos['celular'] : '3517654321')
+						]
 					],
-				],
+				]
+			],
 
-				'destino' => $destino,
+			'remito' => [
+				'numeroRemito' => 'wc_order_' . ($destino_datos['nroremito'] ?? ''),
+			],
 
-				'remitente' => [
-					'nombreCompleto' => $origen_datos['origin_contacto'] ?? '',
-					'email' => $origen_datos['origin_email'] ?? '',
-					'documentoTipo' => 'DNI',
-					'documentoNumero' => '',
-					'telefonos' => [
-						['tipo' => 1, 'numero' => '3511234567'],
+			'bultos' => [
+				[
+					'anchoCm'                    => $ancho,
+					'altoCm'                     => $alto,
+					'largoCm'                    => $largo,
+					'kilos'                      => $peso,
+					'volumenCm'                  => $ancho * $alto * $largo,
+					'valorDeclaradoSinImpuestos'=> $valor,
+					'valorDeclaradoConImpuestos'=> round($valor * 1.21, 2),
+					'referencias'               => [
+						['meta' => 'producto'],
+						['meta' => 'idCliente', 'contenido' => '41'],
+						['meta' => 'observaciones', 'contenido' => $origen_datos['origin_observaciones'] ?? ''],
 					],
-				],
+				]
+			],
+		];
 
-				'destinatario' => [
-					[
-						'nombreCompleto' => trim(($destino_datos['nombre'] ?? '') . ' ' . ($destino_datos['apellido'] ?? '')),
-						'email' => $destino_datos['email'] ?? '',
-						'documentoTipo' => 'DNI',
-						'documentoNumero' => $destino_datos['dni'] ?? '',
-						'telefonos' => [
-							['tipo' => 2, 'numero' => (!empty($destino_datos['telefono']) ? $destino_datos['telefono'] : (!empty($destino_datos['celular']) ? $destino_datos['celular'] : '3517654321'))]
-						],
-					]
-				],
+		$payload_json = wp_json_encode($body, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
-				'remito' => [
-					'numeroRemito' => 'wc_order_' . ($destino_datos['nroremito'] ?? ''),
-				],
+		if (isset($_GET['debug_andreani']) && current_user_can('manage_woocommerce')) {
+			echo '<details open style="margin:10px 0;padding:8px;border:1px solid #ddd;background:#fafafa">';
+			echo '<summary><strong>Payload a Andreani (FINAL)</strong></summary>';
+			echo '<pre style="white-space:pre-wrap;">' . esc_html($payload_json) . '</pre>';
+			echo '</details>';
+		}
 
-				'bultos' => [
-					[
-						'anchoCm' => $ancho,
-						'altoCm' => $alto,
-						'largoCm' => $largo,
-						'kilos' => $peso,
-						'volumenCm' => $ancho * $alto * $largo,
-						'valorDeclaradoSinImpuestos' => $valor,
-						'valorDeclaradoConImpuestos' => round($valor * 1.21, 2),
-						'referencias' => [
-							['meta' => 'producto'],
-							['meta' => 'idCliente', 'contenido' => '41'],
-							['meta' => 'observaciones', 'contenido' => $origen_datos['origin_observaciones'] ?? ''],
-						],
-					]
-				],
-			];
+		$headers = [
+			'Content-Type'         => 'application/json',
+			'x-authorization-token'=> $token,
+		];
 
-			// ─────────────────────────────────────────────
-			// "Imprimir" el payload (logs, nota privada y pantalla opcional)
-			// ─────────────────────────────────────────────
-			$payload_json = wp_json_encode($body, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+		$url  = $this->get_andreani_api_url() . '/v2/ordenes-de-envio';
+		$args = [
+			'method'  => 'POST',
+			'headers' => $headers,
+			'body'    => wp_json_encode($body),
+			'timeout' => 20,
+		];
 
-			// 1) Log
-			// $this->log_to_file("📤 Payload a Andreani (FINAL):\n" . $payload_json);
-
-			// 2) Nota privada en el pedido
-			//$order->add_order_note("📤 Payload Andreani (FINAL):\n" . $payload_json, false);
-
-			// 3) Mostrar en pantalla si ?debug_andreani=1 y el usuario es admin
-			if (isset($_GET['debug_andreani']) && current_user_can('manage_woocommerce')) {
-				echo '<details open style="margin:10px 0;padding:8px;border:1px solid #ddd;background:#fafafa">';
-				echo '<summary><strong>Payload a Andreani (FINAL)</strong></summary>';
-				echo '<pre style="white-space:pre-wrap;">' . esc_html($payload_json) . '</pre>';
-				echo '</details>';
-			}
-
-			$headers = [
-				'Content-Type' => 'application/json',
-				'x-authorization-token' => $token,
-			];
-
-			$url = $this->get_andreani_api_url() . '/v2/ordenes-de-envio';
-			$args = [
-				'method' => 'POST',
-				'headers' => $headers,
-				'body' => wp_json_encode($body),
-				'timeout' => 20,
-			];
-
-			$andreani_response = wp_remote_post($url, $args);
-			if (is_wp_error($andreani_response)) {
-				$this->log_to_file('❌ Error de conexión a Andreani: ' . $andreani_response->get_error_message());
-				echo '<div style="color:red;">Ocurrió un error al conectar con Andreani. Por favor, intente nuevamente.</div>';
-				die();
-			}
-
-			$body_resp = wp_remote_retrieve_body($andreani_response);
-			if (empty($body_resp)) {
-				$this->log_to_file('❌ Respuesta vacía de Andreani');
-				echo '<div style="color:red;">La respuesta de Andreani está vacía. Por favor, intente nuevamente.</div>';
-				die();
-			}
-
-			// $this->log_to_file("📦 Cuerpo de la respuesta de Andreani:");
-			// $this->log_to_file($body_resp);
-			$response_data = json_decode($body_resp);
-
-			$numero_envio = $response_data->bultos[0]->numeroDeEnvio ?? '';
-			$etiqueta = $response_data->bultos[0]->linking[0]->contenido ?? '';
-			$agrupador = $response_data->agrupadorDeBultos ?? '';
-			$estado = $response_data->estado ?? '';
-			$date = current_time('Y-m-d H:i:s');
-
-			update_post_meta($order_id, '_tracking_number', $numero_envio);
-			update_post_meta($order_id, '_custom_tracking_provider', 'Andreani');
-			update_post_meta($order_id, '_custom_tracking_link', 'https://www.andreani.com/');
-			update_post_meta($order_id, '_date_shipped', $date);
-			update_post_meta($order_id, '_etiqueta_andreani', $etiqueta);
-			update_post_meta($order_id, '_agrupador_andreani', $agrupador);
-			update_post_meta($order_id, '_andreani_estado', $estado);
-			update_post_meta($order_id, '_andreani_estado_numero_andreani', $numero_envio);
-
-			echo '<div style="width:100%;"><a data-id="' . esc_attr($order_id) . '" style="width:90%;text-align:center;background:#d71920;color:#fff;padding:10px;margin:10px;display:inline-block;text-decoration:none;cursor:pointer;" id="imprimir-etiqueta-andreani">IMPRIMIR ETIQUETA</a></div>';
-			echo '<p id="andreani-result"></p>';
-			echo '<div style="width:100%;"><a style="width:90%;text-align:center;background:#d71920;color:#fff;padding:10px;margin:10px;display:inline-block;text-decoration:none;" href="#" target="_blank">' . esc_html($numero_envio) . '</a></div>';
-			die();
-
-		} catch (Throwable $e) {
-			$this->log_to_file('❌ Excepción en purchase_order_wanderlust_andreani: ' . $e->getMessage());
-			echo '<div style="color:red;">Ocurrió un error al procesar el pedido. Por favor, intente nuevamente.</div>';
+		$andreani_response = wp_remote_post($url, $args);
+		if (is_wp_error($andreani_response)) {
+			echo '<div style="color:red;">Ocurrió un error al conectar con Andreani. Por favor, intente nuevamente.</div>';
 			die();
 		}
+
+		$body_resp = wp_remote_retrieve_body($andreani_response);
+		if (empty($body_resp)) {
+			echo '<div style="color:red;">La respuesta de Andreani está vacía. Por favor, intente nuevamente.</div>';
+			die();
+		}
+
+		$response_data = json_decode($body_resp);
+
+		$numero_envio = $response_data->bultos[0]->numeroDeEnvio        ?? '';
+		$etiqueta     = $response_data->bultos[0]->linking[0]->contenido ?? '';
+		$agrupador    = $response_data->agrupadorDeBultos                ?? '';
+		$estado       = $response_data->estado                           ?? '';
+		$date         = current_time('Y-m-d H:i:s');
+
+		update_post_meta($order_id, '_tracking_number',                  $numero_envio);
+		update_post_meta($order_id, '_custom_tracking_provider',         'Andreani');
+		update_post_meta($order_id, '_custom_tracking_link',             'https://www.andreani.com/');
+		update_post_meta($order_id, '_date_shipped',                     $date);
+		update_post_meta($order_id, '_etiqueta_andreani',                $etiqueta);
+		update_post_meta($order_id, '_agrupador_andreani',               $agrupador);
+		update_post_meta($order_id, '_andreani_estado',                  $estado);
+		update_post_meta($order_id, '_andreani_estado_numero_andreani',  $numero_envio);
+
+		echo '<div style="width:100%;"><a data-id="' . esc_attr($order_id) . '" style="width:90%;text-align:center;background:#d71920;color:#fff;padding:10px;margin:10px;display:inline-block;text-decoration:none;cursor:pointer;" id="imprimir-etiqueta-andreani">IMPRIMIR ETIQUETA</a></div>';
+		echo '<p id="andreani-result"></p>';
+		echo '<div style="width:100%;"><a style="width:90%;text-align:center;background:#d71920;color:#fff;padding:10px;margin:10px;display:inline-block;text-decoration:none;" href="#" target="_blank">' . esc_html($numero_envio) . '</a></div>';
+		die();
+
+	} catch (Throwable $e) {
+		echo '<div style="color:red;">Ocurrió un error al procesar el pedido. Por favor, intente nuevamente.</div>';
+		die();
 	}
+}
+
 
 
 
@@ -1324,7 +1257,7 @@ class FunctionsAndreani
 		foreach ($shipping_methods as $method) {
 			$method_id_full = $method->get_method_id();
 			$instance_id = $method->get_instance_id();
-			if (strpos($method_id_full, 'andreani_wanderlust') !== false) {
+			if (strpos($method_id_full, 'andreani_eon') !== false) {
 				$available_methods = WC_Shipping_Zones::get_zone_matching_package([
 					'destination' => [
 						'country' => $order->get_shipping_country(),
@@ -1351,7 +1284,6 @@ class FunctionsAndreani
 			return [];
 		}
 
-		// ✅ Crear objeto origen
 		$origen_obj = new stdClass();
 		$origen_obj->origin = $method_instance->get_option('origin');
 		$origen_obj->api_key = $method_instance->get_option('api_key');
@@ -1369,6 +1301,8 @@ class FunctionsAndreani
 		$origen_obj->api_nrocuenta = $method_instance->get_option('api_nrocuenta');
 		$origen_obj->api_confirmarretiro = $method_instance->get_option('api_confirmarretiro');
 		$origen_obj->sucursal_origin = $method_instance->get_option('sucursal_origin');
+		$origen_obj->dni_meta_key = $method_instance->get_option('dni_meta_key') ?: '_billing_dni';
+
 		$items = $order->get_items();
 		$total_amount = 0;
 		$total_weight = 0;
@@ -1458,7 +1392,7 @@ class FunctionsAndreani
 						type: 'POST',
 						cache: false,
 						url: urls,
-						data: { action: 'purchase_order_wanderlust_andreani', dataid: dataid, },
+						data: { action: 'purchase_order_eon_andreani', dataid: dataid, },
 						success: function (data, textStatus, XMLHttpRequest) {
 							jQuery(".andreani-single-label").fadeIn(400);
 							jQuery(".andreani-single-label").html('');
@@ -1476,456 +1410,9 @@ class FunctionsAndreani
 
 
 
-	public function check_admision_andreani()
-	{
-		global $woocommerce, $wp_session;
-		session_start();
-		if (isset($_POST['post_code'])) {
 
-			$params = array(
-				"method" => array(
-					"get_centros_destino" => array(
-						'api_user' => $_POST['api_user'],
-						'api_password' => $_POST['api_password'],
-						'api_confirmarretiro' => $_POST['prod'],
-						'api_nrocuenta' => $_POST['api_nrocuenta'],
-						'operativa' => $_POST['operativa'],
-						'cp_destino' => $_POST['post_code'],
-					)
-				)
-			);
-
-			$andreani_response = wp_remote_post($wp_session['url_andreani'], array(
-				'body' => $params,
-			));
-
-			$andreani_response = json_decode($andreani_response['body']);
-
-			echo '<select id="pv_centro_andreani_estandar" name="pv_centro_andreani_estandar">';
-
-			$listado_andreani = array();
-
-			foreach ($andreani_response->results as $sucursales) {
-				$idCentroImposicion = $sucursales->sucursales->Sucursal;
-				$sucursales_finales = $sucursales->sucursales->Direccion;
-				$listado_andreani[] = $sucursales->sucursales;
-				echo '<option value="' . $idCentroImposicion . '">' . $sucursales_finales . '</option>';
-			}
-
-			echo '</select>';
-
-			$_SESSION['listado_andreani'] = $listado_andreani;
-			$_SESSION['params_andreani'] = $params;
-
-			die();
-		}
-	}
 }
 new FunctionsAndreani();
 
 
 
-
-add_action('wp_footer', 'only_numbers_andreanis');
-function only_numbers_andreanis()
-{
-	if (is_checkout()) { ?>
-		<script type="text/javascript">
-			jQuery(document).ready(function () {
-				jQuery('#order_sucursal_main').insertAfter(jQuery('.woocommerce-checkout-review-order-table'));
-				jQuery('#calc_shipping_postcode').attr({ maxLength: 4 });
-				jQuery('#billing_postcode').attr({ maxLength: 4 });
-				jQuery('#shipping_postcode').attr({ maxLength: 4 });
-
-				jQuery("#calc_shipping_postcode").keypress(function (e) {
-					if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
-						return false;
-					}
-				});
-				jQuery("#billing_postcode").keypress(function (e) {
-					if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
-						return false;
-					}
-				});
-				jQuery("#shipping_postcode").keypress(function (e) {
-					if (e.which != 8 && e.which != 0 && (e.which < 48 || e.which > 57)) {
-						return false;
-					}
-				});
-
-
-				jQuery('#billing_postcode').focusout(function () {
-					if (jQuery('#ship-to-different-address-checkbox').is(':checked')) {
-						var state = jQuery('#shipping_state').val();
-						var post_code = jQuery('#shipping_postcode').val();
-					} else {
-						var state = jQuery('#billing_postcode').val();
-						var post_code = jQuery('#billing_postcode').val();
-					}
-
-
-					var selectedMethod = jQuery('input:checked', '#shipping_method').attr('id');
-					var selectedMethodb = jQuery("#order_review .shipping .shipping_method option:selected").val();
-					if (selectedMethod == null) {
-						if (selectedMethodb != null) {
-							selectedMethod = selectedMethodb;
-						} else {
-							return false;
-						}
-					}
-					var order_sucursal = 'ok';
-					var instance_id = selectedMethod.substr(selectedMethod.indexOf("instance_id") + 11);
-					var operativa = selectedMethod.substr(selectedMethod.indexOf("operativa") + 9)
-					var cuit = selectedMethod.substr(selectedMethod.indexOf("api_nrocuenta") + 4)
-					var cuit_ok = cuit.substr(0, 9);
-					var operativaok = operativa.substr(0, 9);
-
-					jQuery("#order_sucursal_main_result").fadeOut(100);
-					jQuery("#order_sucursal_main_result_cargando").fadeIn(100);
-					jQuery.ajax({
-						type: 'POST',
-						cache: false,
-						url: wc_checkout_params.ajax_url,
-						data: {
-							action: 'check_sucursales_andreani',
-							post_code: post_code,
-							order_sucursal: order_sucursal,
-							operativa: operativaok,
-							cuit: cuit_ok,
-							instance_id: instance_id,
-							provincia: state,
-						},
-						success: function (data, textStatus, XMLHttpRequest) {
-							jQuery("#order_sucursal_main_result").fadeIn(100);
-							jQuery("#order_sucursal_main_result_cargando").fadeOut(100);
-							jQuery("#order_sucursal_main_result").html('');
-							jQuery("#order_sucursal_main_result").append(data);
-
-							var selectList = jQuery('#pv_centro_andreani_estandar option');
-							var arr = selectList.map(function (_, o) { return { t: jQuery(o).text(), v: o.value }; }).get();
-							arr.sort(function (o1, o2) { return o1.t > o2.t ? 1 : o1.t < o2.t ? -1 : 0; });
-							selectList.each(function (i, o) {
-								o.value = arr[i].v;
-								jQuery(o).text(arr[i].t);
-							});
-							jQuery('#pv_centro_andreani_estandar').html(selectList);
-							jQuery("#pv_centro_andreani_estandar").prepend("<option value='0' selected='selected'>Sucursales Disponibles</option>");
-
-						},
-						error: function (MLHttpRequest, textStatus, errorThrown) { alert(errorThrown); }
-					});
-					return false;
-
-				});
-
-			});
-
-			function toggleCustomBox() {
-				var selectedMethod = jQuery('input:checked', '#shipping_method').attr('id');
-				var selectedMethodb = jQuery("#order_review .shipping .shipping_method option:selected").val();
-				if (selectedMethod == null) {
-					if (selectedMethodb != null) {
-						selectedMethod = selectedMethodb;
-					} else {
-						return false;
-					}
-				}
-				//sas, sasp, pasp, pas
-				if (selectedMethod.indexOf("-sas") >= 0 || selectedMethod.indexOf("-sasp") >= 0 || selectedMethod.indexOf("-pasp") >= 0 || selectedMethod.indexOf("-pas") >= 0) {
-
-					jQuery('#order_sucursal_main').show();
-					jQuery('#order_sucursal_main').insertAfter(jQuery('.shop_table'));
-
-					// Ejecutar la búsqueda de sucursales
-					checkSucursales(selectedMethod);
-
-				} else {
-					jQuery('#order_sucursal_main').hide();
-				}
-			}
-
-			// Función separada para verificar sucursales
-			function checkSucursales(selectedMethod) {
-				// Usar un pequeño delay para asegurar que el DOM se haya actualizado
-				setTimeout(function () {
-					if (jQuery('#ship-to-different-address-checkbox').is(':checked')) {
-						var state = jQuery('#shipping_state option:selected').text();
-						var post_code = jQuery('#shipping_postcode').val();
-					} else {
-						var state = jQuery('#billing_state option:selected').text();
-						var post_code = jQuery('#billing_postcode').val();
-					}
-
-					var order_sucursal = 'ok';
-					var instance_id = selectedMethod.substr(selectedMethod.indexOf("instance_id") + 11);
-					var operativa = selectedMethod.substr(selectedMethod.indexOf("operativa") + 9);
-					var cuit = selectedMethod.substr(selectedMethod.indexOf("api_nrocuenta") + 4);
-					var cuit_ok = cuit.substr(0, 9);
-					var operativaok = operativa.substr(0, 9);
-
-					jQuery("#order_sucursal_main_result").fadeOut(100);
-					jQuery("#order_sucursal_main_result_cargando").fadeIn(100);
-
-					jQuery.ajax({
-						type: 'POST',
-						cache: false,
-						url: wc_checkout_params.ajax_url,
-						data: {
-							action: 'check_sucursales_andreani',
-							post_code: post_code,
-							provincia: state,
-							order_sucursal: order_sucursal,
-							operativa: operativaok,
-							cuit: cuit_ok,
-							instance_id: instance_id,
-						},
-						success: function (data, textStatus, XMLHttpRequest) {
-							jQuery("#order_sucursal_main_result").fadeIn(100);
-							jQuery("#order_sucursal_main_result_cargando").fadeOut(100);
-							jQuery("#order_sucursal_main_result").html('');
-							jQuery("#order_sucursal_main_result").append(data);
-
-							var selectList = jQuery('#pv_centro_andreani_estandar option');
-							var arr = selectList.map(function (_, o) { return { t: jQuery(o).text(), v: o.value }; }).get();
-							arr.sort(function (o1, o2) { return o1.t > o2.t ? 1 : o1.t < o2.t ? -1 : 0; });
-							selectList.each(function (i, o) {
-								o.value = arr[i].v;
-								jQuery(o).text(arr[i].t);
-							});
-							jQuery('#pv_centro_andreani_estandar').html(selectList);
-							jQuery("#pv_centro_andreani_estandar").prepend("<option value='0' selected='selected'>Sucursales Disponibles</option>");
-						},
-						error: function (MLHttpRequest, textStatus, errorThrown) {
-							alert(errorThrown);
-						}
-					});
-				}, 100); // Delay de 100ms para asegurar que el DOM se actualice
-			}
-
-			// Event listeners para detectar cambios en provincia
-			jQuery(document).ready(function () {
-
-				// Listener para cambio en provincia de envío
-				jQuery(document).on('change', '#shipping_state', function () {
-					console.log('Cambio detectado en shipping_state:', jQuery(this).val());
-
-					// Verificar si hay un método de envío seleccionado que requiera sucursales
-					var selectedMethod = jQuery('input:checked', '#shipping_method').attr('id');
-					var selectedMethodb = jQuery("#order_review .shipping .shipping_method option:selected").val();
-
-					if (selectedMethod == null && selectedMethodb != null) {
-						selectedMethod = selectedMethodb;
-					}
-
-					// Si hay un método seleccionado que requiere sucursales, recargar
-					if (selectedMethod && (selectedMethod.indexOf("-sas") >= 0 || selectedMethod.indexOf("-sasp") >= 0 || selectedMethod.indexOf("-pasp") >= 0 || selectedMethod.indexOf("-pas") >= 0)) {
-						// Limpiar selección anterior de sucursal
-						jQuery('#pv_centro_andreani_estandar').val('0');
-
-						// Recargar sucursales con la nueva provincia
-						checkSucursales(selectedMethod);
-					}
-				});
-
-				// Listener para cambio en provincia de facturación (cuando no se envía a dirección diferente)
-				jQuery(document).on('change', '#billing_state', function () {
-					console.log('Cambio detectado en billing_state:', jQuery(this).val());
-
-					// Solo si no está marcado "enviar a dirección diferente"
-					if (!jQuery('#ship-to-different-address-checkbox').is(':checked')) {
-						var selectedMethod = jQuery('input:checked', '#shipping_method').attr('id');
-						var selectedMethodb = jQuery("#order_review .shipping .shipping_method option:selected").val();
-
-						if (selectedMethod == null && selectedMethodb != null) {
-							selectedMethod = selectedMethodb;
-						}
-
-						if (selectedMethod && (selectedMethod.indexOf("-sas") >= 0 || selectedMethod.indexOf("-sasp") >= 0 || selectedMethod.indexOf("-pasp") >= 0 || selectedMethod.indexOf("-pas") >= 0)) {
-							jQuery('#pv_centro_andreani_estandar').val('0');
-							checkSucursales(selectedMethod);
-						}
-					}
-				});
-
-				// Listener para cuando se marca/desmarca "enviar a dirección diferente"
-				jQuery(document).on('change', '#ship-to-different-address-checkbox', function () {
-					console.log('Cambio detectado en ship-to-different-address-checkbox:', jQuery(this).is(':checked'));
-
-					var selectedMethod = jQuery('input:checked', '#shipping_method').attr('id');
-					var selectedMethodb = jQuery("#order_review .shipping .shipping_method option:selected").val();
-
-					if (selectedMethod == null && selectedMethodb != null) {
-						selectedMethod = selectedMethodb;
-					}
-
-					if (selectedMethod && (selectedMethod.indexOf("-sas") >= 0 || selectedMethod.indexOf("-sasp") >= 0 || selectedMethod.indexOf("-pasp") >= 0 || selectedMethod.indexOf("-pas") >= 0)) {
-						jQuery('#pv_centro_andreani_estandar').val('0');
-						checkSucursales(selectedMethod);
-					}
-				});
-
-				// Listener adicional para eventos de WooCommerce
-				jQuery(document.body).on('updated_checkout', function () {
-					console.log('WooCommerce checkout updated');
-
-					// Re-aplicar listeners después de actualización del checkout
-					setTimeout(function () {
-						var selectedMethod = jQuery('input:checked', '#shipping_method').attr('id');
-						var selectedMethodb = jQuery("#order_review .shipping .shipping_method option:selected").val();
-
-						if (selectedMethod == null && selectedMethodb != null) {
-							selectedMethod = selectedMethodb;
-						}
-
-						if (selectedMethod && (selectedMethod.indexOf("-sas") >= 0 || selectedMethod.indexOf("-sasp") >= 0 || selectedMethod.indexOf("-pasp") >= 0 || selectedMethod.indexOf("-pas") >= 0)) {
-							if (jQuery('#order_sucursal_main').is(':visible')) {
-								checkSucursales(selectedMethod);
-							}
-						}
-					}, 200);
-				});
-
-				// Listener adicional usando input event (más sensible a cambios)
-				jQuery(document).on('input change', '#shipping_state, #billing_state', function () {
-					console.log('Input/Change detectado en:', jQuery(this).attr('id'), 'Valor:', jQuery(this).val());
-
-					var isShipping = jQuery(this).attr('id') === 'shipping_state';
-					var shouldProcess = isShipping || !jQuery('#ship-to-different-address-checkbox').is(':checked');
-
-					if (shouldProcess) {
-						var selectedMethod = jQuery('input:checked', '#shipping_method').attr('id');
-						var selectedMethodb = jQuery("#order_review .shipping .shipping_method option:selected").val();
-
-						if (selectedMethod == null && selectedMethodb != null) {
-							selectedMethod = selectedMethodb;
-						}
-
-						if (selectedMethod && (selectedMethod.indexOf("-sas") >= 0 || selectedMethod.indexOf("-sasp") >= 0 || selectedMethod.indexOf("-pasp") >= 0 || selectedMethod.indexOf("-pas") >= 0)) {
-							jQuery('#pv_centro_andreani_estandar').val('0');
-							checkSucursales(selectedMethod);
-						}
-					}
-				});
-			});
-
-
-			jQuery(document).ready(toggleCustomBox);
-			jQuery(document).on('change', '#shipping_method input:radio', toggleCustomBox);
-			jQuery(document).on('change', '#order_review .shipping .shipping_method', toggleCustomBox);
-
-			jQuery(document).on('change', '#shipping_state', function () {
-				const selected = jQuery(this).find('option:selected').text();
-				console.log('Provincia cambiada:', selected);
-
-				// Podés llamar directamente toggleCustomBox() si querés refrescar las sucursales:
-				toggleCustomBox();
-			});
-		</script>
-
-		<style type="text/css">
-			#order_sucursal_main h3 {
-				text-align: left;
-				padding: 5px 0 5px 115px;
-			}
-
-			.andreani-logo {
-				position: absolute;
-				margin: 0px;
-			}
-		</style>
-	<?php }
-}	//ends only_numbers_andreanis
-
-/**
- * Add the field to the checkout
- */
-remove_action('woocommerce_after_order_notes', 'order_sucursal_main_andreani');
-
-// 🔹 Agrega tu versión sin la imagen ni el h3 vacío
-add_action('woocommerce_after_order_notes', 'order_sucursal_main_andreani_custom', 1);
-function order_sucursal_main_andreani_custom($checkout)
-{
-	global $woocommerce;
-	session_start();
-	$items = $woocommerce->cart->cart_contents;
-	foreach ($items as $item) {
-		$user_id = $item['data']->post->post_author;
-	}
-	$_SESSION['user_id'] = $user_id;
-
-	echo '<input type="hidden" value="' . $user_id . '" id="user_id_vendor" name="user_id_vendor" />';
-
-	echo '<div id="order_sucursal_main" style="display:none; margin-bottom:50px;">';
-	echo '<h3>Sucursales Andreani</h3>';
-	echo '<small style="margin-top:10px;padding-top:14px;float:left;clear:both;width:100%;">Si seleccionaste retirar por sucursal, elegí tu sucursal en el listado.</small>';
-	echo '<div id="order_sucursal_main_result_cargando">Cargando Sucursales...</div>';
-	echo '<div id="order_sucursal_main_result" style="display:none;">Cargando Sucursales...</div>';
-	echo '</div>';
-}
-
-
-/**
- * Process the checkout
- */
-add_action('woocommerce_checkout_process', 'checkout_field_andreani_process_andreani');
-function checkout_field_andreani_process_andreani()
-{
-	global $woocommerce;
-	session_start();
-
-	$chosen_methods = WC()->session->get('chosen_shipping_methods');
-	$chosen_shipping = $chosen_methods[0];
-	$_SESSION['chosen_shipping'] = $chosen_shipping;
-	if (strpos($chosen_shipping, '-saspapi_nrocuenta') !== false || strpos($chosen_shipping, '-paspapi_nrocuenta') !== false || strpos($chosen_shipping, '-pasapi_nrocuenta') !== false || strpos($chosen_shipping, '-sasapi_nrocuenta') !== false) {
-		if (empty($_POST['pv_centro_andreani_estandar']))
-			wc_add_notice(__('Por favor, seleccionar una sucursal de retiro.'), 'error');
-	}
-}
-
-/**
- * Update the order meta with field value
- */
-add_action('woocommerce_checkout_update_order_meta', 'order_sucursal_main_update_order_meta_andreani');
-function order_sucursal_main_update_order_meta_andreani($order_id)
-{
-	session_start();
-	if (!empty($_POST['pv_centro_andreani_estandar'])) {
-		foreach ($_SESSION['listado_andreani'] as $opciones) {
-			if ($_POST['pv_centro_andreani_estandar'] == $opciones->id) {
-				$opciones = json_encode($opciones);
-				update_post_meta($order_id, '_sucursal_andreani_c', $opciones);
-			}
-		}
-	}
-	$chosen_shipping = json_encode($_SESSION['chosen_shipping']);
-	$params_andreani = json_encode($_SESSION['params_andreani']);
-	update_post_meta($order_id, '_params_andreani', $params_andreani);
-	if (isset($_COOKIE['andreani_origen_datos'])) {
-		update_post_meta($order_id, '_origen_datos', $_COOKIE['andreani_origen_datos']);
-	} else {
-		update_post_meta($order_id, '_origen_datos', $_SESSION['origen_datos']);
-	}
-
-	update_post_meta($order_id, '_chosen_shipping', $chosen_shipping);
-}
-
-
-
-
-
-
-
-
-
-function andreani_admin_notice()
-{
-	?>
-	<div class="notice error my-acf-notice is-dismissible">
-		<p><?php print_r($_SESSION['andreani_notice']); ?></p>
-	</div>
-
-	<?php
-}
-
-
-?>

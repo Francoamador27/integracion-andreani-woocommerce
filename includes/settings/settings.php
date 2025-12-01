@@ -167,6 +167,16 @@ return array(
 		'default' => __('', 'woocommerce-shipping-andreani'),
 		'placeholder' => __('', 'meta-box'),
 	),
+	'dni_meta_key' => array(
+		'title' => __('Meta key del DNI del cliente', 'woocommerce-shipping-andreani'),
+		'type' => 'text',
+		'description' => __(
+			'Nombre del meta de la orden donde se guarda el DNI del cliente. Ej: _billing_dni, _billing_cpf, etc.',
+			'woocommerce-shipping-andreani'
+		),
+		'default' => '_billing_dni',
+		'desc_tip' => true,
+	),
 
 	'ajuste_precio' => array(
 		'title' => __('Ajustar Costos %', 'woocommerce-shipping-andreani'),

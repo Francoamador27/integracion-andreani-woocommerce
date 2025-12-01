@@ -1,0 +1,201 @@
+/* Checkboxes más prolijos */
+.wc-modal-shipping-method-settings form .form-table tr td input[type=checkbox] {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    cursor: pointer;
+    accent-color: #2563eb; /* azul tipo Tailwind */
+}
+
+/* Contenedores de las tablas */
+.eon_boxes,
+.eon_services {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 0.75rem; /* rounded-xl */
+    border: 1px solid #e5e7eb; /* slate-200 */
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08); /* sombra suave */
+    overflow: hidden;
+    font-size: 13px;
+}
+
+/* Encabezados */
+.eon_boxes thead th,
+.eon_services thead th {
+    padding: 10px 12px;
+    background: #f9fafb; /* slate-50 */
+    color: #6b7280;      /* slate-500 */
+    font-weight: 600;
+    text-align: left;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* Celdas cuerpo */
+.eon_boxes td,
+.eon_services td {
+    vertical-align: middle;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #ffffff;
+}
+
+/* Última fila sin borde extra */
+.eon_boxes tbody tr:last-child td,
+.eon_services tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Hover de fila (efecto tabla pro) */
+.eon_boxes tbody tr:hover,
+.eon_services tbody tr:hover {
+    background-color: #f9fafb; /* slate-50 */
+}
+
+/* Inputs dentro de la tabla */
+.eon_boxes td input[type="text"],
+.eon_services td input[type="text"],
+.eon_boxes td select,
+.eon_services td select {
+    width: 100%;
+    max-width: 100%;
+    padding: 6px 8px;
+    border-radius: 0.375rem; /* rounded-md */
+    border: 1px solid #d1d5db; /* gray-300 */
+    font-size: 13px;
+    line-height: 1.4;
+    background-color: #ffffff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+}
+
+/* Focus estilo Tailwind */
+.eon_boxes td input[type="text"]:focus,
+.eon_services td input[type="text"]:focus,
+.eon_boxes td select:focus,
+.eon_services td select:focus {
+    outline: none;
+    border-color: #2563eb; /* blue-600 */
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+    background-color: #f9fafb;
+}
+
+/* Inputs pequeños */
+.eon_boxes .small {
+    width: 60px;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Columna de checkbox */
+.eon_boxes .check-column,
+.eon_services .check-column {
+    vertical-align: middle;
+    text-align: center;
+    padding: 0 10px;
+    width: 40px;
+}
+
+/* Botones Agregar / Remover */
+.eon_boxes .button.plus.insert,
+.eon_boxes .button.minus.remove {
+    border-radius: 9999px; /* rounded-full */
+    padding: 4px 12px;
+    font-size: 12px;
+    border: 1px solid transparent;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+
+/* Botón Agregar */
+.eon_boxes .button.plus.insert {
+    background-color: #2563eb; /* blue-600 */
+    border-color: #1d4ed8;
+    color: #ffffff;
+}
+.eon_boxes .button.plus.insert:hover {
+    background-color: #1d4ed8; /* blue-700 */
+    border-color: #1e40af;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Botón Remover */
+.eon_boxes .button.minus.remove {
+    background-color: #f3f4f6; /* gray-100 */
+    border-color: #e5e7eb;
+    color: #374151;
+}
+.eon_boxes .button.minus.remove:hover {
+    background-color: #e5e7eb;
+    border-color: #d1d5db;
+    box-shadow: 0 2px 6px rgba(148, 163, 184, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Cabecera de la fila footer */
+.eon_boxes tfoot th {
+    padding: 10px 12px;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* Columna de orden / sort */
+.eon_services th.sort {
+    width: 32px;
+    padding: 0 12px;
+    text-align: center;
+}
+
+.eon_services td.sort {
+    width: 32px;
+    padding: 0 12px;
+    text-align: center;
+    cursor: move;
+    background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAHUlEQVQYV2O8f//+fwY8gJGgAny6QXKETRgEVgAAXxAVsa5Xr3QAAAAASUVORK5CYII=) no-repeat center;
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+.eon_services td.sort:hover {
+    opacity: 1;
+}
+
+/* Espaciado general de la tabla dentro del panel */
+.wc-modal-shipping-method-settings table.eon_boxes,
+.wc-modal-shipping-method-settings table.eon_services {
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+
+/* Estilo general para filas del formulario Andreani */
+.eon-settings-row th {
+    font-weight: 600;
+    color: #111827; /* slate-900 */
+}
+
+.eon-settings-row td input[type="text"],
+.eon-settings-row td select {
+    width: 100%;
+    max-width: 420px;
+    padding: 6px 8px;
+    border-radius: 0.375rem; /* rounded-md */
+    border: 1px solid #d1d5db;
+    font-size: 13px;
+    background-color: #ffffff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eon-settings-row td input[type="text"]:focus,
+.eon-settings-row td select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+}
+
+/* Ejemplo específico para la fila de API */
+.eon-settings-row--api td {
+    background-color: #f9fafb;
+}

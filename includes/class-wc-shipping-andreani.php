@@ -1,5 +1,5 @@
 <?php
-error_reporting(0);
+
 if (!defined('ABSPATH')) {
 	exit;
 }
@@ -11,20 +11,16 @@ if (!defined('ABSPATH')) {
  */
 class WC_Shipping_Andreani extends WC_Shipping_Method
 {
-	private $default_boxes;
 	private $found_rates;
 
-	/**
-	 * Constructor
-	 */
+
 	public function __construct($instance_id = 0)
 	{
 
-		$this->id = 'andreani_wanderlust';
+		$this->id = 'andreani_eon';
 		$this->instance_id = absint($instance_id);
 		$this->method_title = __('Andreani Envios', 'woocommerce-shipping-andreani');
 		$this->method_description = __('Obtain shipping rates dynamically via the Andreani API for your orders.', 'woocommerce');
-		$this->default_boxes = include('data/data-box-sizes.php');
 		$this->supports = array(
 			'shipping-zones',
 			'instance-settings',
@@ -36,17 +32,16 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 
 	}
 
-	/**
-	 * init function.
-	 */
 	public function init()
 	{
-		// Load the settings.
-		$this->init_form_fields = include('data/data-settings.php');
-		$this->init_settings();
-		$this->instance_form_fields = include('data/data-settings.php');
+		$settings_path = __DIR__ . '/settings/settings.php';
 
-		// Define user set variables
+		$settings = include $settings_path;
+
+		$this->init_form_fields = $settings;
+		$this->init_settings();
+		$this->instance_form_fields = $settings;
+
 		$this->title = $this->get_option('title', $this->method_title);
 		$this->origin = apply_filters('woocommerce_andreani_origin_postal_code', str_replace(' ', '', strtoupper($this->get_option('origin'))));
 		$this->origin_country = apply_filters('woocommerce_andreani_origin_country_code', WC()->countries->get_base_country());
@@ -73,9 +68,7 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 		$this->redondear_total = ($bool = $this->get_option('redondear_total')) && $bool == 'yes' ? true : false;
 	}
 
-	/**
-	 * Output a message
-	 */
+
 	public function debug($message, $type = 'notice')
 	{
 		if ($this->debug) {
@@ -83,9 +76,7 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 		}
 	}
 
-	/**
-	 * environment_check function.
-	 */
+
 	private function environment_check()
 	{
 		if (!in_array(WC()->countries->get_base_country(), array('AR'))) {
@@ -99,26 +90,18 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 		}
 	}
 
-	/**
-	 * admin_options function.
-	 */
+
 	public function admin_options()
 	{
-		// Check users environment supports this method
 		$this->environment_check();
 
-		// Show settings
 		parent::admin_options();
 	}
 
-
-	/**
-	 * generate_box_packing_html function.
-	 */
 	public function generate_service_html()
 	{
 		ob_start();
-		include('data/services.php');
+		include __DIR__ . '/settings/services.php';;
 		return ob_get_clean();
 	}
 
@@ -133,7 +116,7 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 
 		$service_name = isset($_POST['service_name']) ? $_POST['service_name'] : array();
 		$service_operativa = isset($_POST['service_operativa']) ? $_POST['service_operativa'] : array();
-		$service_sucursal = isset($_POST['woocommerce_andreani_wanderlust_modalidad']) ? $_POST['woocommerce_andreani_wanderlust_modalidad'] : array();
+		$service_sucursal = isset($_POST['woocommerce_andreani_eon_modalidad']) ? $_POST['woocommerce_andreani_eon_modalidad'] : array();
 		$service_enabled = isset($_POST['service_enabled']) ? $_POST['service_enabled'] : array();
 
 		$services = array();
@@ -148,7 +131,7 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 					$services[] = array(
 						'service_name' => $service_name[$i],
 						'operativa' => floatval($service_operativa[$i]),
-						'woocommerce_andreani_wanderlust_modalidad' => $service_sucursal[$i],
+						'woocommerce_andreani_eon_modalidad' => $service_sucursal[$i],
 						'enabled' => isset($service_enabled[$i]) ? true : false
 					);
 				}
@@ -159,21 +142,6 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 		return $services;
 	}
 
-	/**
-	 * Get packages - divide the WC package into packages/parcels suitable for a OCA quote
-	 */
-	public function get_andreani_packages($package)
-	{
-		switch ($this->packing_method) {
-			case 'box_packing':
-				return $this->box_shipping($package);
-				break;
-			case 'per_item':
-			default:
-				return $this->per_item_shipping($package);
-				break;
-		}
-	}
 
 	/**
 	 * per_item_shipping function.
@@ -291,7 +259,8 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 		return $to_ship;
 	}
 
-	private function get_member_discount_from_session() {
+	private function get_member_discount_from_session()
+	{
 		try {
 			if (WC()->session && method_exists(WC()->session, 'get')) {
 				return WC()->session->get('member_discount_applied');
@@ -304,161 +273,298 @@ class WC_Shipping_Andreani extends WC_Shipping_Method
 		}
 	}
 
-	/*
-	 * calculate_shipping function.
-	 *
-	 * @param mixed $package
-	 */
-public function calculate_shipping($package = array())
-{
-	global $woocommerce;
 
-	$session_data = $woocommerce->session->get_session_data();
-	$amount = maybe_unserialize($session_data['cart_totals']);
-	$subtotal = floatval($amount['subtotal']);
-	$descuento = floatval($amount['discount_total']);
-	$member_discount_data = $this->get_member_discount_from_session();
-	$monto_neto = $subtotal - $member_discount_data['discount_amount'] - $descuento;
+	public function calculate_shipping($package = array())
+	{
+		global $woocommerce;
 
-	$this->debug(__('Andreani modo de depuración está activado - para ocultar estos mensajes, desactive el modo de depuración en los ajustes.', 'woocommerce-shipping-andreani'));
+		// Totales de carrito (defensivo ante índices faltantes)
+		$session_data = is_object($woocommerce->session) ? $woocommerce->session->get_session_data() : [];
+		$amount = isset($session_data['cart_totals']) ? maybe_unserialize($session_data['cart_totals']) : [];
+		$subtotal = isset($amount['subtotal']) ? (float) $amount['subtotal'] : 0.0;
+		$descuento = isset($amount['discount_total']) ? (float) $amount['discount_total'] : 0.0;
 
-	$andreani_packages = $this->get_andreani_packages($package);
-	$dimension_unit = esc_attr(get_option('woocommerce_dimension_unit'));
-	$weight_unit = esc_attr(get_option('woocommerce_weight_unit'));
+		$member_discount_data = $this->get_member_discount_from_session();
+		$member_discount = (is_array($member_discount_data) && isset($member_discount_data['discount_amount']))
+			? (float) $member_discount_data['discount_amount'] : 0.0;
 
-	$dimension_multi = ($dimension_unit === 'm') ? 1 : (($dimension_unit === 'cm') ? 100 : 1000);
-	$weight_multi = ($weight_unit === 'g') ? 0.001 : 1;
+		$monto_neto = max(0.0, $subtotal - $member_discount - $descuento);
 
-	$andreani_amount = 0;
-	$andreani_weightb = 0;
-	$andreani_volumesy = 0;
-	$andreani_packageb = 1;
+		$this->debug(__('Andreani modo de depuración está activado - para ocultar estos mensajes, desactive el modo de depuración en los ajustes.', 'woocommerce-shipping-andreani'));
 
-	foreach ($andreani_packages as $key) {
-		$andreani_package = $key['GroupPackageCount'];
-		$andreani_weight = $key['Weight']['Value'] * $weight_multi;
-		$andreani_lenth = $key['Dimensions']['Length'] / $dimension_multi;
-		$andreani_width = $key['Dimensions']['Width'] / $dimension_multi;
-		$andreani_height = $key['Dimensions']['Height'] / $dimension_multi;
+		// Paquetes preparados por tu método
+		$andreani_packages = $this->per_item_shipping($package);
 
-		if ($andreani_lenth == 0 || $andreani_width == 0 || $andreani_height == 0) {
-			continue;
-		}
-
-		$andreani_amount += $key['InsuredValue']['Amount'];
-		if ($andreani_amount == 0) {
-			continue;
-		}
-
-		$andreani_weightb += $andreani_weight * $andreani_package;
-		$andreani_volume = $andreani_lenth * $andreani_width * $andreani_height;
-		$andreani_volumesy += $andreani_volume * $andreani_package;
+		// Acumuladores corregidos
+		$andreani_amount = 0.0;   // asegurado total (suma de ítems válidos)
+		$total_weight_kg = 0.0;   // peso TOTAL en kg
+		$max_volume_cm3 = 0;     // volumen MÁXIMO (no suma) en cm³
 		$andreani_packageb = 1;
-	}
-	$andreani_volumesy = number_format($andreani_volumesy, 2, '.', '');
-	$seguro = $amount['total'];
 
-	foreach ($this->services as $services) {
-		if (!$services['enabled']) {
-			continue;
-		}
+		foreach ($andreani_packages as $key) {
+			// Cantidad de bultos de este item/grupo
+			$pkg_qty = isset($key['GroupPackageCount']) ? (int) $key['GroupPackageCount'] : 1;
 
-		$params_hash = md5(serialize([
-			$this->api_nrocuenta,
-			$services['operativa'],
-			$andreani_weightb,
-			$andreani_volumesy,
-			$this->origin,
-			$package['destination']['postcode'],
-		]));
+			// Peso normalizado a KG
+			$w_val = isset($key['Weight']['Value']) ? (float) $key['Weight']['Value'] : 0;
+			$weight_kg = (float) wc_get_weight($w_val, 'kg');
 
-		$precio = get_transient("andreani_cart_$params_hash");
+			// Dimensiones normalizadas a CM
+			$dim = isset($key['Dimensions']) ? $key['Dimensions'] : ['Length' => 0, 'Width' => 0, 'Height' => 0];
+			$len_cm = (float) wc_get_dimension($dim['Length'] ?? 0, 'cm');
+			$wid_cm = (float) wc_get_dimension($dim['Width'] ?? 0, 'cm');
+			$hei_cm = (float) wc_get_dimension($dim['Height'] ?? 0, 'cm');
 
-		if (!$precio) {
-			$precio = $this->consultar_api_flexipaas(
-				$andreani_weightb,
-				$andreani_volumesy,
-				$this->origin,
-				$package['destination']['postcode'],
-				$services['operativa']
-			);
-
-			if (!$precio || $precio <= 0) {
+			// Si faltan dimensiones válidas, saltamos este grupo
+			if ($len_cm <= 0 || $wid_cm <= 0 || $hei_cm <= 0) {
 				continue;
 			}
 
-			set_transient("andreani_cart_$params_hash", $precio, HOUR_IN_SECONDS);
+			// Asegurado del ítem (no del acumulado)
+			$item_insured = isset($key['InsuredValue']['Amount']) ? (float) $key['InsuredValue']['Amount'] : 0;
+			if ($item_insured <= 0) {
+				continue;
+			}
+
+			// Volumen por bulto en cm³
+			$vol_cm3_per_pkg = $len_cm * $wid_cm * $hei_cm;
+
+			// Actualiza el mayor volumen encontrado (independiente de la cantidad)
+			if ($vol_cm3_per_pkg > $max_volume_cm3) {
+				$max_volume_cm3 = $vol_cm3_per_pkg;
+			}
+
+			// Peso total: suma peso*bultos
+			$total_weight_kg += ($weight_kg * $pkg_qty);
+
+			// Suma asegurado
+			$andreani_amount += $item_insured;
+
+			$andreani_packageb = 1;
 		}
 
-		$ajuste = ($this->ajuste_precio === '0' || $this->ajuste_precio === '0%') ? 1 : floatval($this->ajuste_precio);
-		$precio += ($precio * $ajuste / 100);
+		// Normalizaciones finales para la consulta
+		$andreani_volumesy = (int) max(1, round($max_volume_cm3));           // cm³ entero, nunca 0
+		$andreani_weightb = (float) max(0.001, round($total_weight_kg, 3));  // kg con 3 decimales
 
-		if ($this->redondear_total) {
-			$precio = round($precio, 0, PHP_ROUND_HALF_UP);
+		// (Si usabas $amount['total'] como "seguro", mantenelo por si lo necesitás)
+		$seguro = isset($amount['total']) ? (float) $amount['total'] : 0.0;
+
+		// Tarificación por cada servicio habilitado
+		foreach ($this->services as $services) {
+			if (empty($services['enabled'])) {
+				continue;
+			}
+
+			$params_hash = md5(serialize([
+				$this->api_nrocuenta,
+				$services['operativa'] ?? '',
+				$andreani_weightb,
+				$andreani_volumesy,
+				$this->origin,
+				$package['destination']['postcode'] ?? '',
+			]));
+
+			$precio = get_transient("andreani_cart_$params_hash");
+
+			if (!$precio) {
+				$precio = $this->consultar_api_andreani(
+					$andreani_weightb,            // kg total
+					$andreani_volumesy,           // cm³ (máximo)
+					$this->origin,
+					$package['destination']['postcode'] ?? '',
+					$services['operativa'] ?? ''
+				);
+
+				if (!$precio || $precio <= 0) {
+					continue;
+				}
+
+				set_transient("andreani_cart_$params_hash", $precio, HOUR_IN_SECONDS);
+			}
+
+			$ajuste = (is_numeric($this->ajuste_precio)) ? (float) $this->ajuste_precio : 0;
+			$precio += ($precio * $ajuste / 100);
+
+			if (!empty($this->redondear_total)) {
+				$precio = round($precio, 0, PHP_ROUND_HALF_UP);
+			}
+
+			if (is_numeric($this->ajuste_gratis) && $monto_neto >= (float) $this->ajuste_gratis) {
+				$precio = 0;
+				$titulo = $services['service_name'] . ' GRATIS';
+			} else {
+				$titulo = $services['service_name'];
+			}
+
+			$rate = array(
+				'id' => sprintf("%s-%s", sanitize_title($titulo), $services['service_name'] . '-' . ($services['woocommerce_andreani_eon_modalidad'] ?? '') . 'api_nrocuenta' . $this->api_nrocuenta . 'operativa' . ($services['operativa'] ?? '') . 'instance_id' . $this->instance_id),
+				'label' => $titulo,
+				'calc_tax' => 'per_item',
+				'cost' => $precio
+			);
+
+			$this->add_rate($rate);
 		}
-
-		if ($monto_neto >= $this->ajuste_gratis) {
-			$precio = 0;
-			$titulo = $services['service_name'] . ' GRATIS';
-		} else {
-			$titulo = $services['service_name'] ;
-		}
-
-		$rate = array(
-			'id'        => sprintf("%s-%s", sanitize_title($titulo), $services['service_name'] . '-' . $services['woocommerce_andreani_wanderlust_modalidad'] . 'api_nrocuenta' . $this->api_nrocuenta . 'operativa' . $services['operativa'] . 'instance_id' . $this->instance_id),
-			'label'     => $titulo,
-			'calc_tax'  => 'per_item',
-			'cost'      => $precio
-		);
-
-		$this->add_rate($rate);
 	}
-}
 
-	/**
-	 * sort_rates function.
-	 **/
+
 	public function sort_rates($a, $b)
 	{
 		if ($a['sort'] == $b['sort'])
 			return 0;
 		return ($a['sort'] < $b['sort']) ? -1 : 1;
 	}
-	private function consultar_api_flexipaas($peso_total, $volumen_total, $cp_origen, $cp_destino, $operativa) {
-	$url = 'https://external-services.api.flexipaas.com/woo/seguridad/cotizaciones/';
+	private function consultar_api_andreani($peso_total, $volumen_total, $cp_origen, $cp_destino, $operativa)
+	{
+		try {
+			// Base URL de la nueva API de Andreani
+			$base_url = 'https://apis.andreani.com/v1/tarifas';
 
-	$username = $this->api_user;
-	$password = $this->api_password;
+			// Construir parámetros de la URL
+			$params = array(
+				'cpDestino' => $cp_destino,
+				'contrato' => $operativa, // Debes definir esta propiedad
+				'cliente' => $this->api_nrocuenta,   // Debes definir esta propiedad
+				'bultos[0][volumen]' => number_format($volumen_total, 0, '', ''), // Sin decimales según el ejemplo
+				'bultos[0][peso]' => number_format($peso_total, 2, '.', ''), // Con decimales para el peso
+			);
 
-	$body = array(
-		'api_nrocuenta' => $this->api_nrocuenta,
-		'operativa'     => $operativa,
-		'peso_total'    => number_format($peso_total, 2, '.', ''),
-		'volumen_total' => number_format($volumen_total, 2, '.', ''),
-		'cp_origen'     => $cp_origen,
-		'cp_destino'    => $cp_destino,
-	);
+			// Agregar parámetros adicionales si son necesarios
+			if (!empty($cp_origen)) {
+				$params['cpOrigen'] = $cp_origen;
+			}
 
-	$response = wp_remote_post($url, array(
-		'headers' => array(
-			'Authorization' => 'Basic ' . base64_encode($username . ':' . $password),
-			'Content-Type'  => 'application/json',
-		),
-		'body' => json_encode($body),
-		'timeout' => 15,
-	));
+			// Construir la URL completa con parámetros
+			$url = $base_url . '?' . http_build_query($params);
 
-	if (is_wp_error($response)) {
-		return null;
+			// Obtener el token Bearer (debes implementar esta función)
+			$bearer_token = $this->login_andreani();
+
+			if (!$bearer_token) {
+				return null; // No se pudo obtener el token
+			}
+
+			$response = wp_remote_get($url, array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $bearer_token,
+					'Content-Type' => 'application/json',
+				),
+				'timeout' => 15,
+			));
+
+			if (is_wp_error($response)) {
+				return null;
+			}
+
+			$data = json_decode(wp_remote_retrieve_body($response), true);
+
+			if (isset($data['tarifaConIva']['total'])) {
+				return floatval($data['tarifaConIva']['total']);
+			}
+
+			return null;
+		} catch (Exception $e) {
+			return null;
+		}
+
 	}
+	private function login_andreani()
+	{
+		try {
+			$transient_key = 'token_andreani_login';
+			$token = get_transient($transient_key);
 
-	$data = json_decode(wp_remote_retrieve_body($response), true);
+			if ($token) {
+				return $token;
+			}
 
-	if (isset($data['tarifaConIva']['total'])) {
-		return floatval($data['tarifaConIva']['total']);
+			$url = $this->get_andreani_api_url() . '/login';
+
+			$credenciales = $this->get_user_password();
+
+			$body = [
+				"userName" => $credenciales['user'],
+				"password" => $credenciales['password'],
+			];
+
+			$args = [
+				'method' => 'POST',
+				'headers' => [
+					'Accept' => 'application/json',
+					'Content-Type' => 'application/json',
+				],
+				'body' => json_encode($body),
+				'timeout' => 15,
+			];
+
+			$response = wp_remote_post($url, $args);
+
+			if (is_wp_error($response)) {
+				return null;
+			}
+
+			$json = wp_remote_retrieve_body($response);
+			$data = json_decode($json, true);
+
+			if (json_last_error() !== JSON_ERROR_NONE || !is_array($data)) {
+				return null;
+			}
+
+			$token = $data['token'] ?? null;
+
+			if ($token) {
+				// Guardar el token durante 23 horas
+				set_transient($transient_key, $token, 23 * HOUR_IN_SECONDS);
+			}
+
+			return $token;
+
+		} catch (Throwable $e) {
+			return null;
+		}
 	}
+	private function get_andreani_api_url($fallback = 'https://apis.andreani.com')
+	{
+		$delivery_zones = WC_Shipping_Zones::get_zones();
 
-	return null;
-}
+		foreach ($delivery_zones as $zone) {
+			foreach ($zone['shipping_methods'] as $method) {
+				if ($method->id === 'andreani_eon' && $method->enabled === 'yes') {
+					$environment = $method->instance_settings['entorno_api'] ?? 'produccion';
+					return $environment === 'desarrollo'
+						? 'https://apisqa.andreani.com'
+						: 'https://apis.andreani.com';
+				}
+			}
+		}
+
+		return $fallback;
+	}
+	private function get_user_password()
+	{
+		$delivery_zones = WC_Shipping_Zones::get_zones();
+
+		foreach ($delivery_zones as $zone) {
+			foreach ($zone["shipping_methods"] as $method) {
+				if ($method->id === "andreani_eon" && $method->enabled === "yes") {
+					return [
+						'user' => $method->instance_settings['api_user'] ?? '',
+						'password' => $method->instance_settings['api_password'] ?? ''
+					];
+				}
+			}
+		}
+
+		// Si no se encontró nada
+		return ['user' => '', 'password' => ''];
+	}
+	private function log_to_file($data)
+	{
+		$log_file = plugin_dir_path(__FILE__) . 'andreani_log.txt';
+		$log_data = "Log entry at " . date("Y-m-d H:i:s") . "\n";
+		$log_data .= print_r($data, true) . "\n";
+		file_put_contents($log_file, $log_data, FILE_APPEND);
+	}
 
 }
